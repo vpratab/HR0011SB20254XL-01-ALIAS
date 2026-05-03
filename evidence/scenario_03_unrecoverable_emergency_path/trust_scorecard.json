@@ -1,0 +1,19 @@
+{
+  "topic_id": "HR0011SB20254XL-01",
+  "title": "ALIAS Missionized Autonomy for Emergency Services",
+  "scenario_name": "scenario_03_unrecoverable_emergency_path",
+  "total_frames": 60,
+  "accept_frames": 20,
+  "flag_frames": 0,
+  "reject_frames": 40,
+  "min_trust_score": 0.0,
+  "final_trust_score": 0.0,
+  "first_reject_frame": 20,
+  "violations_by_property": {
+    "Air-Ground Coordination Link": 40,
+    "Divert / Dip Site Reachability": 40,
+    "Fireline Standoff Margin": 40,
+    "Mission App Recovery Readiness": 40,
+    "Terrain and Smoke Clearance Margin": 40
+  }
+}

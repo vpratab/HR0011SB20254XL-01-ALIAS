@@ -1,0 +1,13 @@
+{
+  "topic_id": "HR0011SB20254XL-01",
+  "title": "ALIAS Missionized Autonomy for Emergency Services",
+  "repo_name": "HR0011SB20254XL-01-ALIAS-Emergency-Assurance",
+  "solicitation_track": "Direct-to-Phase-II",
+  "solicitation_objective": "Deliver a third-party autonomy application that integrates with ALIAS/MATRIX for emergency-service missions such as wildfire reconnaissance, suppression support, cargo sling load, or medevac-style operations.",
+  "source_basis": "DARPA ALIAS Missionized Autonomy for Emergency Services program page and FAQ, January 2026.",
+  "opening_angle": "ALIAS/MATRIX mission-app assurance for emergency autonomy",
+  "delivery": "Integrable software module plus evidence/review tooling that watches for unsafe or degraded emergency mission-app behavior and supports operator review via a lightweight web viewer.",
+  "short_pitch": "RTVLAS adapted as a wildfire and emergency-response mission-app assurance layer for ALIAS/MATRIX-style autonomy, monitoring whether missionized autonomous behaviors remain safe, timely, and recoverable during fireline reconnaissance and response operations.",
+  "viewer": true,
+  "phase2_transition": "Tie the assurance layer to ALIAS/MATRIX-compatible mission autonomy middleware, add operator review workflows, and demonstrate recovery-state transitions in realistic wildfire reconnaissance or emergency response scenarios."
+}

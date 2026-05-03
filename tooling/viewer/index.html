@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>RTVLAS Evidence Viewer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --panel: #111827;
+        --panel-border: #1f2937;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --warn: #f59e0b;
+        --reject: #ef4444;
+      }
+      body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); margin: 2rem; }
+      h1, h2 { margin-bottom: 0.4rem; }
+      p, li { color: var(--muted); }
+      .controls, .grid { display: grid; gap: 1rem; }
+      .controls { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 1.5rem 0; }
+      .grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .metric { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+      .label { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+      .layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-top: 1rem; }
+      .canvas-wrap { background: linear-gradient(180deg, rgba(56,189,248,0.08), transparent); border-radius: 8px; padding: 0.5rem; }
+      canvas { width: 100%; height: 280px; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      th, td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--panel-border); vertical-align: top; text-align: left; }
+      th { color: var(--muted); font-weight: 600; }
+      code, pre { background: #0f172a; border-radius: 8px; padding: 0.15rem 0.35rem; }
+      pre { padding: 1rem; overflow: auto; }
+      input[type="file"] { width: 100%; }
+      .status-accept { color: #22c55e; }
+      .status-flag { color: var(--warn); }
+      .status-reject { color: var(--reject); }
+      @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <h1>RTVLAS Evidence Viewer</h1>
+    <p>Load a generated <code>trust_scorecard.json</code> and, optionally, the matching <code>timeline.json</code> to inspect trust drift, violations, and reject timing.</p>
+
+    <div class="controls">
+      <div class="card">
+        <div class="label">Scorecard</div>
+        <input id="scorecardFile" type="file" accept=".json" />
+      </div>
+      <div class="card">
+        <div class="label">Timeline</div>
+        <input id="timelineFile" type="file" accept=".json" />
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><div class="label">Scenario</div><div id="scenarioName" class="metric">Not loaded</div></div>
+      <div class="card"><div class="label">Final Trust</div><div id="finalTrust" class="metric">-</div></div>
+      <div class="card"><div class="label">First Reject</div><div id="firstReject" class="metric">-</div></div>
+      <div class="card"><div class="label">Frame Totals</div><div id="frameTotals" class="metric">-</div></div>
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <h2>Trust Timeline</h2>
+        <div class="canvas-wrap">
+          <canvas id="timelineChart" width="960" height="280"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Violation Ledger</h2>
+        <table>
+          <thead>
+            <tr><th>Frame</th><th>Verdict</th><th>Properties</th></tr>
+          </thead>
+          <tbody id="ledgerRows">
+            <tr><td colspan="3">Load a timeline to populate the violation ledger.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;">
+      <h2>Raw Scorecard</h2>
+      <pre id="output">waiting for files...</pre>
+    </div>
+    <script>
+      const state = { scorecard: null, timeline: null };
+
+      function verdictLabel(verdict) {
+        if (verdict === 2 || verdict === "Reject") return "Reject";
+        if (verdict === 1 || verdict === "Flag") return "Flag";
+        return "Accept";
+      }
+
+      function verdictClass(label) {
+        if (label === "Reject") return "status-reject";
+        if (label === "Flag") return "status-flag";
+        return "status-accept";
+      }
+
+      function renderSummary() {
+        const scorecard = state.scorecard;
+        document.getElementById("scenarioName").textContent = scorecard?.scenario_name ?? "Not loaded";
+        document.getElementById("finalTrust").textContent = scorecard ? scorecard.final_trust_score.toFixed(3) : "-";
+        document.getElementById("firstReject").textContent = scorecard?.first_reject_frame ?? "None";
+        document.getElementById("frameTotals").textContent = scorecard
+          ? `${scorecard.accept_frames}/${scorecard.flag_frames}/${scorecard.reject_frames}`
+          : "-";
+        document.getElementById("output").textContent = scorecard
+          ? JSON.stringify(scorecard, null, 2)
+          : "waiting for files...";
+      }
+
+      function renderTimeline() {
+        const canvas = document.getElementById("timelineChart");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const timeline = state.timeline;
+        if (!timeline || timeline.length === 0) {
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "16px Arial";
+          ctx.fillText("Load timeline.json to render trust history.", 24, 32);
+          return;
+        }
+
+        const left = 48;
+        const right = 16;
+        const top = 18;
+        const bottom = 30;
+        const width = canvas.width - left - right;
+        const height = canvas.height - top - bottom;
+
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(left, top);
+        ctx.lineTo(left, top + height);
+        ctx.lineTo(left + width, top + height);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        timeline.forEach((frame, index) => {
+          const x = left + (index / Math.max(1, timeline.length - 1)) * width;
+          const y = top + (1 - frame.trust_score) * height;
+          if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        timeline.forEach((frame, index) => {
+          const label = verdictLabel(frame.verdict);
+          if (label === "Accept") return;
+          const x = left + (index / Math.max(1, timeline.length - 1)) * width;
+          const y = top + (1 - frame.trust_score) * height;
+          ctx.fillStyle = label === "Reject" ? "#ef4444" : "#f59e0b";
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "12px Arial";
+        ctx.fillText("1.0", 10, top + 6);
+        ctx.fillText("0.0", 10, top + height + 4);
+        ctx.fillText("Trust Score", left, 12);
+
+        const ledgerRows = document.getElementById("ledgerRows");
+        const events = timeline.filter((frame) => verdictLabel(frame.verdict) !== "Accept");
+        if (events.length === 0) {
+          ledgerRows.innerHTML = '<tr><td colspan="3">No non-accept events in this timeline.</td></tr>';
+          return;
+        }
+        ledgerRows.innerHTML = events.map((frame) => {
+          const label = verdictLabel(frame.verdict);
+          const properties = frame.outcomes
+            .filter((outcome) => verdictLabel(outcome.verdict) !== "Accept")
+            .map((outcome) => outcome.property_name)
+            .join(", ");
+          return `<tr><td>${frame.frame_index}</td><td class="${verdictClass(label)}">${label}</td><td>${properties}</td></tr>`;
+        }).join("");
+      }
+
+      async function loadJsonFile(event, key) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        state[key] = JSON.parse(text);
+        renderSummary();
+        renderTimeline();
+      }
+
+      document.getElementById("scorecardFile").addEventListener("change", (event) => loadJsonFile(event, "scorecard"));
+      document.getElementById("timelineFile").addEventListener("change", (event) => loadJsonFile(event, "timeline"));
+      renderSummary();
+      renderTimeline();
+    </script>
+  </body>
+</html>

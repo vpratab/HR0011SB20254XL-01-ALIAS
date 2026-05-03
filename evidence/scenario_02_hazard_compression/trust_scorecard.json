@@ -1,0 +1,17 @@
+{
+  "topic_id": "HR0011SB20254XL-01",
+  "title": "ALIAS Missionized Autonomy for Emergency Services",
+  "scenario_name": "scenario_02_hazard_compression",
+  "total_frames": 60,
+  "accept_frames": 30,
+  "flag_frames": 30,
+  "reject_frames": 0,
+  "min_trust_score": 0.4269998,
+  "final_trust_score": 0.4269998,
+  "first_reject_frame": null,
+  "violations_by_property": {
+    "Divert / Dip Site Reachability": 30,
+    "Fireline Standoff Margin": 30,
+    "Terrain and Smoke Clearance Margin": 30
+  }
+}

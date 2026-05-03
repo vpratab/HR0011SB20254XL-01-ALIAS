@@ -1,0 +1,26 @@
+[
+  {
+    "id": "scenario_01_nominal_response_leg",
+    "label": "Nominal Fireline Recon Leg",
+    "summary": "Emergency autonomy executes a stable wildfire reconnaissance leg with healthy standoff, clearance margin, and recovery readiness.",
+    "mode": "nominal",
+    "input": "scenarios/scenario_01_nominal_response_leg.jsonl",
+    "output": "evidence/scenario_01_nominal_response_leg"
+  },
+  {
+    "id": "scenario_02_hazard_compression",
+    "label": "Smoke Corridor Compression",
+    "summary": "Fireline hazard margins and air-ground coordination begin to degrade but remain within recoverable limits.",
+    "mode": "degraded",
+    "input": "scenarios/scenario_02_hazard_compression.jsonl",
+    "output": "evidence/scenario_02_hazard_compression"
+  },
+  {
+    "id": "scenario_03_unrecoverable_emergency_path",
+    "label": "Unrecoverable Fireline Divert",
+    "summary": "Divert reachability, hazard margin, and mission-app recovery readiness collapse simultaneously, forcing a reject-grade mission assurance event.",
+    "mode": "fault",
+    "input": "scenarios/scenario_03_unrecoverable_emergency_path.jsonl",
+    "output": "evidence/scenario_03_unrecoverable_emergency_path"
+  }
+]
